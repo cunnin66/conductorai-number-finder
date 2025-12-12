@@ -39,6 +39,15 @@ MAGNITUDE_TEST_CASES = [
     pytest.param("Numbers with qualifiers like 1 million and 2.4 in billions", [1_000_000, 2_400_000_000], id="qualifiers"),
     pytest.param("Distant qualifiers, such as 2.4 and 3.5 (in millions)", [2_400_000, 3_500_000], id="distant_qualifiers"),
     pytest.param("False qualifiers should not match: 2.4 markings, or 3.5mm", [2.4, 3.5], id="false_qualifiers"),
+    pytest.param("False upline qualifer 1.2 in millions. Should not influence 2.5", [1_200_000, 2.5], id="false_upline_qualifiers"),
+    pytest.param("False downline qualifiers should not match: 2.4. Where 3.5 in thousands should", [2.4, 3_500], id="false_downline_qualifiers"),
+    pytest.param("Example profit of $9.2 billion", [9_200_000_000], id="with_currency"),
+    # Identifier patterns - should NOT be treated as magnitudes
+    pytest.param("Fund 9B is a name, not 9 billion", [9, 9_000_000_000], id="identifier_fund_9b"),
+    pytest.param("Model 3T and Version 2K are identifiers", [3, 2], id="identifier_model_version"),
+    # But these SHOULD still work as magnitudes
+    pytest.param("Revenue of 9.5B and costs of 10B", [9_500_000_000, 10_000_000_000], id="valid_magnitude_with_decimal"),
+    pytest.param("The company made 50M in profit", [50_000_000], id="valid_magnitude_multi_digit"),
 ]
 @pytest.mark.parametrize(
     "pdf_text,expected",

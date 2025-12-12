@@ -82,11 +82,25 @@ def extract_numbers_with_magnitude(text: str) -> list[int | float]:
         results.append(normalize(base * (10 ** exp)))
         mark(m.start(), m.end())
     
-    # 2. Single-letter magnitudes (attached or with space/comma, not followed by letters)
-    # Handles: 1K, 200m, 3.25b, 1T, 1 K, 5 M, 5, M but NOT 3.5mm (millimeters)
+    # 2. Single-letter magnitudes - with safeguards against identifier patterns like "Fund 9B"
+    # 
+    # Strategy: Check if preceded by capitalized word + space (identifier pattern)
+    # This catches: "Fund 9B", "Model 3T", "Version 2K" etc.
+    
+    def is_identifier_pattern(match_start: int) -> bool:
+        """Check if preceded by a capitalized word + space (e.g., 'Fund 9B')."""
+        # Look at up to 20 chars before the match
+        prefix = text[max(0, match_start - 20):match_start]
+        # Check for pattern: capitalized word followed by space(s) at the end
+        return bool(re.search(r'[A-Z][a-z]*\s+$', prefix))
+    
+    # Single-letter magnitudes (attached or with space/comma, not followed by letters)
+    # Handles: 1K, 200m, 3.25b, 1T, 1 K, 5 M, 5, M but NOT 3.5mm (millimeters) or "Fund 9B"
     for m in re.finditer(rf'({num_pattern})\s*[,]?\s*([kKmMbBtT])(?![a-zA-Z])', text):
         if not is_free(m.start(), m.end()):
             continue
+        if is_identifier_pattern(m.start()):
+            continue  # Skip identifier patterns like "Fund 9B"
         num = parse_num(m.group(1))
         mag = UNIT_MAGNITUDES[m.group(2).lower()]
         results.append(normalize(num * mag))

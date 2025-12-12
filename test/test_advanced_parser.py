@@ -6,6 +6,7 @@ ADVANCED_TEST_CASES = [
     ("samples/one_page_no_numbers.pdf", None),
     ("samples/100_chart_grid_(100).pdf", 100),
     ("samples/afwcf_body_text_n(2025)_a(1730800000).pdf", 1_730_800_000),
+    ("samples/afwcf_long_table_(4874).pdf", 4874), # still fails to map distant qualifiers
 ]
 @pytest.mark.parametrize(
     "file,largest_number",
