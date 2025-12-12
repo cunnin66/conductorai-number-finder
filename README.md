@@ -13,10 +13,10 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python3 ./main.py path/to/file.pdf
+python3 ./main.py "path/to/file.pdf"
 ```
 
-The file path can be an absolute path, relative path, or URL.
+The file path can be an absolute path, relative path, or URL (quotes recommended).
 
 ### Options
 
