@@ -1,5 +1,5 @@
 import pytest
-from naive_parser import naive_parse
+from main import PdfNumberParser
 
 TEST_CASES = [
     ("samples/one_page_no_numbers.pdf", None),
@@ -20,4 +20,4 @@ TEST_CASES = [
     ids=[case[0] for case in TEST_CASES],
 )
 def test_simple_number_extraction(file, largest_number):
-    assert naive_parse(file) == largest_number
+    assert PdfNumberParser(file).find_largest_number() == largest_number
