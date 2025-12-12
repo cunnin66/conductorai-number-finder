@@ -74,8 +74,15 @@ def extract_numbers_with_magnitude(text: str) -> list[int | float]:
         return not any(consumed[start:end])
     
     # 1. Scientific notation: 1.23e4, 1.43E-5, 1.43E+05
+    # Reject if preceded or followed by letters - catches OCR artifacts like "Person1.n5e9l4"
     for m in re.finditer(rf'({num_pattern})[eE]([+-]?\d+)', text):
         if not is_free(m.start(), m.end()):
+            continue
+        # Check if preceded by a letter (OCR artifact)
+        if m.start() > 0 and text[m.start() - 1].isalpha():
+            continue
+        # Check if followed by a letter (OCR artifact)
+        if m.end() < len(text) and text[m.end()].isalpha():
             continue
         base = parse_num(m.group(1))
         exp = int(m.group(2))
@@ -96,11 +103,17 @@ def extract_numbers_with_magnitude(text: str) -> list[int | float]:
     
     # Single-letter magnitudes (attached or with space/comma, not followed by letters)
     # Handles: 1K, 200m, 3.25b, 1T, 1 K, 5 M, 5, M but NOT 3.5mm (millimeters) or "Fund 9B"
-    for m in re.finditer(rf'({num_pattern})\s*[,]?\s*([kKmMbBtT])(?![a-zA-Z])', text):
+    # Note: Use [ \t]* instead of \s* to avoid matching across newlines (e.g., "10.5\nb" shouldn't match)
+    # Also reject if followed by ), digits, or . - catches list items, OCR artifacts, and section numbers like "3.3 T."
+    for m in re.finditer(rf'({num_pattern})[ \t]*[,]?[ \t]*([kKmMbBtT])(?![a-zA-Z\)0-9.])', text):
         if not is_free(m.start(), m.end()):
             continue
         if is_identifier_pattern(m.start()):
             continue  # Skip identifier patterns like "Fund 9B"
+        # Check if preceded by a letter - this catches OCR artifacts like "M4a.i4n7t9enance"
+        # where "7t" would incorrectly match as 7 trillion
+        if m.start() > 0 and text[m.start() - 1].isalpha():
+            continue
         num = parse_num(m.group(1))
         mag = UNIT_MAGNITUDES[m.group(2).lower()]
         results.append(normalize(num * mag))
@@ -129,19 +142,43 @@ def extract_numbers_with_magnitude(text: str) -> list[int | float]:
         results.append(normalize(num * mag))
         mark(m.start(), m.end())
     
-    # 5. Distant qualifiers - parenthetical magnitudes that apply to preceding numbers
+    # 5. Group qualifiers - parenthetical magnitudes that apply to numbers in the same group
+    # A "group" is defined by sentence/line boundaries (newlines, periods, etc.)
+    # This prevents a qualifier in one section from affecting numbers in unrelated sections
+    
+    def find_group_start(pos: int) -> int:
+        """Find the start of the current group by looking backwards for boundaries."""
+        # Look for newlines, sentence endings, or start of text
+        search_text = text[:pos]
+        # Find the last occurrence of group boundaries
+        boundaries = [
+            search_text.rfind('\n'),
+            search_text.rfind('. '),
+            search_text.rfind('.\t'),
+            search_text.rfind('? '),
+            search_text.rfind('! '),
+        ]
+        last_boundary = max(boundaries)
+        return last_boundary + 1 if last_boundary >= 0 else 0
+    
     for qual_match in re.finditer(rf'\(\s*({word_mag_pattern})s?\s*\)', text, re.IGNORECASE):
         mag_key = qual_match.group(1).lower()
         mag = UNIT_MAGNITUDES[mag_key]
         qual_start = qual_match.start()
         
-        # Apply to unconsumed numbers before this qualifier
-        for num_match in re.finditer(num_pattern, text[:qual_start]):
-            if not is_free(num_match.start(), num_match.end()):
+        # Find the start of this group (sentence/line boundary)
+        group_start = find_group_start(qual_start)
+        group_text = text[group_start:qual_start]
+        
+        # Apply only to unconsumed numbers within this group
+        for num_match in re.finditer(num_pattern, group_text):
+            abs_start = group_start + num_match.start()
+            abs_end = group_start + num_match.end()
+            if not is_free(abs_start, abs_end):
                 continue
             num = parse_num(num_match.group())
             results.append(normalize(num * mag))
-            mark(num_match.start(), num_match.end())
+            mark(abs_start, abs_end)
     
     # 6. Remaining plain numbers
     for m in re.finditer(num_pattern, text):
