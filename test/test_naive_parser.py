@@ -1,14 +1,23 @@
 import pytest
-from utils.num_extractor import extract_numbers
+from naive_parser import naive_parse
+
+TEST_CASES = [
+    ("samples/one_page_no_numbers.pdf", None),
+    ("samples/100_chart_grid_(100).pdf", 100),
+    ("samples/afwcf_body_text_(2025).pdf", 2025),
+    ("samples/afwcf_line_chart_(2500).pdf", 2500), # failing - commas?
+    ("samples/afwcf_long_table_(4874).pdf", 4874), # failing - commas?
+    ("samples/afwcf_simple_table_(15873d5).pdf", 15873.5), # failing - decimal?
+    ("samples/afwcf_table_no_lines_(8818d877).pdf", 8818.877), # failing - decimal?
+    ("samples/afwcf_table_some_lines_(2025).pdf", 2025),
+    ("samples/afwcf_title_page_(4930).pdf", 4930),
+    ("samples/sample_invoice_(13201652).pdf", 13201652),
+]
 
 @pytest.mark.parametrize(
-    "pdf_text,expected",
-    [
-        pytest.param("There are no numbers here.", [], id="no_numbers"),
-        pytest.param("This file has numbers 10, 20, and 5.", [10, 20, 5], id="comma_separated_numbers"),
-        pytest.param("Maximum number is 999999 while others are 2 and 3.", [999999, 2, 3], id="multiple_numbers"),
-    ],
+    "file,largest_number",
+    TEST_CASES,
+    ids=[case[0] for case in TEST_CASES],
 )
-def test_simple_number_extraction(pdf_text, expected):
-    numbers = extract_numbers(pdf_text)
-    assert set(numbers) == set(expected)
+def test_simple_number_extraction(file, largest_number):
+    assert naive_parse(file) == largest_number

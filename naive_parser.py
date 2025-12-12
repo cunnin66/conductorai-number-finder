@@ -5,13 +5,13 @@ from utils.num_extractor import extract_numbers
 
 
 def naive_parse(file: str):
-    largest_number = 0
+    largest_number = None
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
 
             for number in extract_numbers(text):
-                if number > largest_number:
+                if largest_number is None or number > largest_number:
                     largest_number = number
     return largest_number
 
