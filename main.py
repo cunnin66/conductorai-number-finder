@@ -3,7 +3,7 @@ import time
 import argparse
 import requests
 import pdfplumber
-from utils.num_extractor import extract_numbers
+from utils.num_extractor import extract_numbers, extract_numbers_with_magnitude
 
 
 class PdfNumberParser:
@@ -35,12 +35,33 @@ class PdfNumberParser:
                     print(f"(DEBUG) Largest number on Page #{page_num + 1}: {page_largest if page_largest else '[None]'}")
 
         return overall_largest
+    
+    def find_largest_number_advanced(self) -> int | float | None:
+        overall_largest = None
+
+        with pdfplumber.open(self.file) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                
+                page_largest = None
+                for number in extract_numbers_with_magnitude(text):
+                    if page_largest is None or number > page_largest:
+                        page_largest = number
+                
+                if page_largest and (overall_largest is None or page_largest > overall_largest):
+                    overall_largest = page_largest
+                
+                if self.verbose:
+                    print(f"(DEBUG) Largest number on Page #{page_num + 1}: {page_largest if page_largest else '[None]'}")
+
+        return overall_largest
 
 
 def parse_args():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
     arg_parser.add_argument("-v", "--verbose", action="store_true")
+    arg_parser.add_argument("-a", "--advanced", action="store_true")
     return arg_parser.parse_args()
 
 
@@ -49,11 +70,14 @@ if __name__ == "__main__":
 
     start_time = time.time()
     parser = PdfNumberParser(args.file, args.verbose)
-    largest_number = parser.find_largest_number()
+    if args.advanced:
+        largest_number = parser.find_largest_number_advanced()
+    else:
+        largest_number = parser.find_largest_number()
     end_time = time.time()
 
     print("*" * 100)
-    print("Approach: Naive Parser")
+    print(f"Approach: {'Advanced' if args.advanced else 'Naive'} Parser")
     print(f"Time taken: {round(end_time - start_time, 3)} seconds")
     print(f"Largest number found: {largest_number}")
     print("*" * 100)

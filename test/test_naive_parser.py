@@ -1,10 +1,10 @@
 import pytest
 from main import PdfNumberParser
 
-TEST_CASES = [
+NAIVE_TEST_CASES = [
     ("samples/one_page_no_numbers.pdf", None),
     ("samples/100_chart_grid_(100).pdf", 100),
-    ("samples/afwcf_body_text_(2025).pdf", 2025),
+    ("samples/afwcf_body_text_n(2025)_a(1730800000).pdf", 2025),
     ("samples/afwcf_line_chart_(2500).pdf", 2500),
     ("samples/afwcf_long_table_(4874).pdf", 4874),
     ("samples/afwcf_simple_table_(15873d5).pdf", 15873.5),
@@ -16,8 +16,22 @@ TEST_CASES = [
 
 @pytest.mark.parametrize(
     "file,largest_number",
-    TEST_CASES,
-    ids=[case[0] for case in TEST_CASES],
+    NAIVE_TEST_CASES,
+    ids=[case[0] for case in NAIVE_TEST_CASES],
 )
 def test_simple_number_extraction(file, largest_number):
     assert PdfNumberParser(file).find_largest_number() == largest_number
+
+
+ADVANCED_TEST_CASES = [
+    ("samples/one_page_no_numbers.pdf", None),
+    ("samples/100_chart_grid_(100).pdf", 100),
+    ("samples/afwcf_body_text_n(2025)_a(1730800000).pdf", 1_730_800_000),
+]
+@pytest.mark.parametrize(
+    "file,largest_number",
+    ADVANCED_TEST_CASES,
+    ids=[case[0] for case in ADVANCED_TEST_CASES],
+)
+def test_advanced_number_extraction(file, largest_number):
+    assert PdfNumberParser(file).find_largest_number_advanced() == largest_number
