@@ -1,6 +1,6 @@
 import re
 
-def extract_numbers(text: str):
+def extract_numbers(text: str) -> list[int | float]:
     # Match negative numbers, decimals, and comma-formatted numbers
     pattern = r'-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?'
     matches = re.findall(pattern, text)

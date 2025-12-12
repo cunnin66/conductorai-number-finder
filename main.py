@@ -16,7 +16,7 @@ class PdfNumberParser:
             response.raise_for_status()
             self.file = io.BytesIO(response.content)
 
-    def find_largest_number(self):
+    def find_largest_number(self) -> int | float | None:
         overall_largest = None
 
         with pdfplumber.open(self.file) as pdf:
@@ -37,15 +37,19 @@ class PdfNumberParser:
         return overall_largest
 
 
-if __name__ == "__main__":
+def parse_args():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
     arg_parser.add_argument("-v", "--verbose", action="store_true")
-    args = arg_parser.parse_args()
+    return arg_parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
 
     start_time = time.time()
-    num_parser = PdfNumberParser(args.file, args.verbose)
-    largest_number = num_parser.find_largest_number()
+    parser = PdfNumberParser(args.file, args.verbose)
+    largest_number = parser.find_largest_number()
     end_time = time.time()
 
     print("*" * 100)
